@@ -3,11 +3,11 @@ An API for managing an online bookstore with MongoDB, Node js and Express
 
 ## INSTALLATION.
 
-    -  Clone the repository: git clone https://github.com/tormgibbs/Online-BookStore-API
-    -  Navigate to project directory: cd Online-BookStore-API
-    -  Install dependencies using npm install command in your terminal or cmd : npm install
-    -  Start server by running nodemon server.js (if you have installed nodemon) else use node server.js
-    -  Open http://localhost:8000 on your browser to see the documentation of APIs.
+-  Clone the repository: git clone https://github.com/tormgibbs/Online-BookStore-API
+-  Navigate to project directory: cd Online-BookStore-API
+-  Install dependencies using npm install command in your terminal or cmd : npm install
+-  Start server by running nodemon server.js (if you have installed nodemon) else use node server.js
+-  Open http://localhost:8000 on your browser to see the documentation of APIs.
   
 ##  FEATURES OF THE PROJECT
 1. User Registration & Login: Users can register themselves into the system and then login to access other functionalities.
