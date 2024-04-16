@@ -7,9 +7,14 @@ const middleware = require('./utils/middleware')
 const logger = require('./utils/logger')
 const mongoose = require('mongoose')
 
+// Routers
+const adminRouter = require('./controllers/admin')
 const authorsRouter = require('./controllers/authors')
 const booksRouter = require('./controllers/books')
 const cartsRouter = require('./controllers/carts')
+const loginRouter = require('./controllers/login')
+const ordersRouter = require('./controllers/orders')
+const usersRouter = require('./controllers/users')
 
 mongoose.set('strictQuery', false)
 // mongoose.set('strictPopulate', false)
@@ -31,16 +36,17 @@ connectToMongoDB()
 
 
 
-
 app.use(cors())
 app.use(express.json())
-app.get('/', (req, res) => res.json({ message: 'Hello World!' }) )
 app.use(middleware.requestLogger)
 
-
+app.use('/admin', adminRouter)
 app.use('/api/authors', authorsRouter)
 app.use('/api/books', booksRouter)
 app.use('/api/carts', cartsRouter)
+app.use('/api/login', loginRouter)
+app.use('/api/orders', ordersRouter)
+app.use('/api/users', usersRouter)
 
 app.use(middleware.unknownEndpoint)
 app.use(middleware.errorHandler)

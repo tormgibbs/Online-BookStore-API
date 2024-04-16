@@ -1,16 +1,3 @@
-/*
-payment status
-placed at
-payment status
-user
-
-
-collections
-
-
-*/
-
-
 const mongoose = require('mongoose')
 
 
@@ -26,6 +13,10 @@ const orderSchema = new mongoose.Schema({
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    required: true
   }
 })
+
+
+module.exports = mongoose.model('Order', orderSchema)

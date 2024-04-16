@@ -3,57 +3,19 @@ const cartsRouter = require('express').Router()
 const Cart = require('../models/cart')
 const CartItem = require('../models/cartItem')
 const Book = require('../models/book')
+const { 
+  cartCreateSerializer, 
+  cartItemCreateSerializer, 
+  cartItemSerializer, 
+  cartSerializer
+} = require('../serializers/cart')
 
 
-const cartCreateSerializer = (cart) => {
-  const createdAt = new Date(cart.createdAt).toISOString().split('T')[0];
-  console.log(Cart)
-  return {
-    id: cart._id,
-    items: [],
-    createdAt: createdAt,
-  }
-}
-
-const cartItemCreateSerializer = (cartItem) => {
-  return {
-    book: cartItem.book,
-    quantity: cartItem.quantity
-  }
-}
-
-const bookSerializer = (book) => {
-  return {
-    id: book.id,
-    title: book.title,
-    unitPrice: book.price
-  }
-}
-
-const cartItemSerializer = (cartItems) => {
-  return cartItems.map((item) => {
-    return {
-      id: item._id,
-      book: bookSerializer(item.book),
-      quantity: item.quantity,
-      totalPrice: item.quantity * item.book.price
-    }
-  })
-}
-
-const cartSerializer  = (cartId, cartItems) => {
-  const items = cartItemSerializer(cartItems)
-  const totalPrice =  Math.round(items.reduce((total, item) => total + item.totalPrice, 0) * 100) / 100;
-  return {
-    id: cartId,
-    items: items,
-    totalPrice
-  }
-}
 
 // Create a new cart
 cartsRouter.post('/', async (request, response) => {
   const cart = await Cart.create({});
+  
   const serializedCart = cartCreateSerializer(cart)
   response.status(201).json(serializedCart)
 })
@@ -69,6 +31,25 @@ cartsRouter.get('/:cartId', async (request, response) => {
   response.json(serializedCart)
 })
 
+// Delete a cart
+cartsRouter.delete('/:cartId', async (request, response) => {
+  const { cartId } = request.params
+  // check if cart exists
+  const cart = await Cart.findById(cartId)
+  if (!cart) {
+    return response.status(404).json({ message: 'Cart not found' })
+  }
+
+  // Delete associated cart items
+  await CartItem.deleteMany({ cart: cartId })
+
+  // Delete the cart
+  await Cart.findByIdAndDelete(cartId)
+
+  response.status(204).end()
+})
+
+
 // Get cart items
 cartsRouter.get('/:cartId/items', async (request, response) => {
   const { cartId } = request.params
@@ -83,6 +64,27 @@ cartsRouter.get('/:cartId/items', async (request, response) => {
 cartsRouter.post('/:cartId/items', async (request, response) => {
   const { cartId } = request.params
   const body = request.body
+
+  if (!body.bookId || !body.quantity) {
+    return response.status(400).json({ message: 'Missing required fields' })
+  }
+
+  // Check if book exists
+  const bookToAdd = await Book.findById(body.bookId)
+  if (!bookToAdd) {
+    return response.status(404).json({ message: 'Book not found' })
+  }
+
+  // Check if the book already exists in the cart
+  let existingCartItem = await CartItem.findOne({ cart: cartId, book: body.bookId })
+
+  if (existingCartItem) {
+    // If the book exists, update the quantity
+    existingCartItem.quantity += body.quantity
+    await existingCartItem.save()
+    const serializedCartItem = cartItemCreateSerializer(existingCartItem)
+    return response.status(200).json(serializedCartItem)
+  }
 
   const cartItem = new CartItem({
     cart: cartId,
@@ -101,6 +103,62 @@ cartsRouter.post('/:cartId/items', async (request, response) => {
   response.status(201).json(serializedCartItem)
 
 })
+
+// Get an item in cart
+cartsRouter.get('/:cartId/items/:cartItemId', async (request, response) => {
+  const { cartId, cartItemId } = request.params
+
+  // check if cart exists
+  const cart = await Cart.findById(cartId)
+  if (!cart) {
+    return response.status(404).json({ message: 'Cart not found' })
+  }
+
+  const cartItem = await CartItem.findById(cartItemId).populate('book')
+  if (!cartItem) {
+    return response.status(404).json({ message: 'Cart item not found' })
+  }
+  const serializedCartItem = cartItemSerializer(cartItem)
+  response.json(serializedCartItem)
+})
+
+
+// Edit items in cart
+cartsRouter.put('/:cartId/items/:cartItemId', async (request, response) => {
+  const { cartId, cartItemId } = request.params
+  const { quantity } = request.body
+
+  if (!quantity) {
+    return response.status(400).json({ message: 'Missing required fields' })
+  }
+
+  const cartItem = await CartItem.findById(cartItemId)
+  if (!cartItem) {
+    return response.status(404).json({ message: 'Cart item not found' })
+  }
+
+  cartItem.quantity = quantity
+  await cartItem.save()
+  const serializedCartItem = cartItemCreateSerializer(cartItem)
+  response.status(200).json(serializedCartItem)
+})
+
+
+// Delete an item in cart
+cartsRouter.delete('/:cartId/items/:cartItemId', async (request, response) => {
+  const { cartId, cartItemId } = request.params;
+
+  const cartItem = await CartItem.findById(cartItemId);
+
+  if (!cartItem) {
+    return response.status(404).json({ message: 'Cart item not found' });
+  }
+
+  await cartItem.deleteOne();
+
+  return response.status(204).end();
+});
+
 
 
 module.exports = cartsRouter

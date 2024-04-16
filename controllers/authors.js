@@ -2,14 +2,14 @@ const authorsRouter = require('express').Router()
 
 const Author = require('../models/author')
 const Book = require('../models/book')
-const logger = require('../utils/logger')
+
+const { tokenExtractor, userExtractor } = require('../utils/middleware')
 
 
 // GET all authors
 authorsRouter.get('/', async (request, response) => {
   const authors = await Author.find({}).populate('books', { title: 1 })
   response.json(authors)
-
 })
 
 
@@ -25,9 +25,19 @@ authorsRouter.get('/:id', async (request, response) => {
 
 
 // POST a new author
-authorsRouter.post('/', async (request, response) => {
-  const body = request.body
+authorsRouter.post('/', [tokenExtractor,userExtractor], async (request, response) => {
+  const user = request.user
 
+  if (!user.isAdmin) {
+    return response.status(401).json({ error: 'Authentication credentials were not provided' })
+  }
+
+  const body = request.body
+  
+  if (!body.name) {
+    return response.status(400).json({ error: 'Missing required field name' })
+  }
+  
   const author = new Author({
     name: body.name,
     biography: body.biography
@@ -40,6 +50,11 @@ authorsRouter.post('/', async (request, response) => {
 
 // DELETE an author
 authorsRouter.delete('/:id', async (request, response) => {
+  const user = request.user
+  if (!user.isAdmin) {
+    return response.status(401).json({ error: 'Authentication credentials were not provided' })
+  }
+
   const authorId = request.params.id
   const author = await Author.findById(authorId)
 
