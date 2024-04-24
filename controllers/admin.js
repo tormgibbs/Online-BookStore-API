@@ -7,6 +7,10 @@ const User = require('../models/user')
 adminRouter.post('/', async (request, response) => {
   const { username, name, password, email } = request.body
 
+  if (!username || !password || !email ) {
+    return response.status(400).json({ error: 'username, password and email are required' })
+  }
+
   if (password.length < 5 || username.length < 5) {
     return response.status(400).json({ error: 'username and password must be at least 5 characters long' })
   }

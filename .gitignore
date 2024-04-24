@@ -1,6 +1,5 @@
 node_modules
 misc
 .env
-api.rest
 authors.rest
 .eslintrc.js
