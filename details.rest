@@ -7,7 +7,7 @@ Content-Type: application/json
 
 POST http://localhost:3000/api/authors
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWQiOiI2NjI4ZmI5YTAxNDBjMWNkMGRjZjllM2EiLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE3MTM5NjIwMjYsImV4cCI6MTcxMzk2NTYyNn0.N_GgUSi9qVmI0Nqr9MGXvumsYya7uxWul2x_kNKoa1A
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWQiOiI2NjI4ZmI5YTAxNDBjMWNkMGRjZjllM2EiLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE3MTM5Nzc3NTgsImV4cCI6MTcxMzk4MTM1OH0.RL8-8ruIr-Ugh6CSgYvBeDCRHtTGHzwwNDR9EwDji2E
 
 {
     "name": "James Bond",
@@ -17,7 +17,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkb
 ###
 POST http://localhost:3000/api/books
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWQiOiI2NjI4ZmI5YTAxNDBjMWNkMGRjZjllM2EiLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE3MTM5NjIwMjYsImV4cCI6MTcxMzk2NTYyNn0.N_GgUSi9qVmI0Nqr9MGXvumsYya7uxWul2x_kNKoa1A
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWQiOiI2NjI4ZmI5YTAxNDBjMWNkMGRjZjllM2EiLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE3MTM5Nzc3NTgsImV4cCI6MTcxMzk4MTM1OH0.RL8-8ruIr-Ugh6CSgYvBeDCRHtTGHzwwNDR9EwDji2E
 
 {
     "title": "The Catcher in the Rye",
@@ -48,3 +48,13 @@ Content-Type: application/json
     "username": "admin",
     "password": "123456"
 }
+
+###
+POST http://localhost:3000/api/carts/97178e0f-b961-4a53-bee9-e714f85b5af1/items
+Content-Type: application/json
+
+{
+    "bookId": "662931a4baa1b4d05cd5da14",
+    "quantity": 29
+}
+
