@@ -1,5 +1,4 @@
 const  booksRouter = require('express').Router()
-const { json } = require('express')
 const Author = require('../models/author')
 const Book = require('../models/book')
 const { tokenExtractor, userExtractor } = require('../utils/middleware')
@@ -31,96 +30,138 @@ booksRouter.post('/', [tokenExtractor, userExtractor], async (request, response)
     return response.status(403).json({ error: 'Forbidden. Only admins can add books' })
   }
 
-  const body = request.body
+  const { author, title, isbn, imageUrl, price, description, genre, quantity } = request.body
 
   if (
-    !body.author || !body.title 
-    || !body.isbn || !body.imageUrl || !body.price 
-    || !body.description || !body.genre || !body.quantity
+    !author || !title || !isbn || !imageUrl || !price 
+    || !description || !genre || !quantity
   ) {
     return response.status(400).json({ error: 'Missing required fields' })
   }
-
-  const author = await Author.findOne({ name: body.author }).lean()
-
+  
   // check if book exists already
-  const existingBook = await Book.findOne({ title: body.title })
+  const existingBook = await Book.findOne({ title: title })
   if (existingBook) {
     return response.status(409).json({ error: 'Book already exists' })
   }
   
   
-  if (author) {
-    const authorId = author._id.toString()
-    const authorInDb = await Author.findById(authorId)
+  let authorDoc = await Author.findOne({ name: author })
 
-    const book = new Book({
-      title: body.title,
-      author: author._id.toString(),
-      isbn: body.isbn,
-      imageUrl: body.imageUrl,
-      price: body.price,
-      description: body.description,
-      genre: body.genre,
-      quantity: body.quantity
-    })
-
-    const savedBook = await book.save()
-    authorInDb.books = author.books.concat(savedBook._id)
-    await authorInDb.save()
-    response.status(201).json(savedBook)
-
-  } else {
-    response.status(404).send({ error: 'author not found, please add author' })
+  if (!authorDoc) {
+    authorDoc = new Author({ name: author, books: [] })
   }
+
+  const book = new Book({
+    title,
+    author: authorDoc._id,
+    isbn,
+    imageUrl,
+    price,
+    description,
+    genre,
+    quantity
+  })
+
+  const savedBook = await book.save()
+  authorDoc.books = authorDoc.books.concat(savedBook._id)
+  await authorDoc.save()
+  response.status(201).json(savedBook)
+
+
+  
+  // if (author) {
+  //   const authorId = author._id.toString()
+  //   const authorInDb = await Author.findById(authorId)
+
+  //   const book = new Book({
+  //     title: body.title,
+  //     author: author._id.toString(),
+  //     isbn: body.isbn,
+  //     imageUrl: body.imageUrl,
+  //     price: body.price,
+  //     description: body.description,
+  //     genre: body.genre,
+  //     quantity: body.quantity
+  //   })
+
+  //   const savedBook = await book.save()
+  //   authorInDb.books = author.books.concat(savedBook._id)
+  //   await authorInDb.save()
+  //   response.status(201).json(savedBook)
+
+  // } else {
+  //   response.status(404).send({ error: 'author not found, please add author' })
+  // }
 })
 
 
 // DELETE a book
 booksRouter.delete('/:id', [tokenExtractor, userExtractor], async (request, response) => {
   const user = request.user
+  const bookId= request.params.id
 
   if (!user.isAdmin) {
     return response.status(403).json({ error: 'Only admins can delete books' })
   }
-  
-  const book = await Book.findById(request.params.id)
-  if (!book) {
-    return response.status(404).json({ message: 'Book not found' })
+
+  // Find the book and delete it
+  const deletedBook = await Book.findByIdAndDelete(bookId)
+  if (!deletedBook) {
+    return response.status(404).json({ error: 'Book not found' })
   }
 
-  const author = await Author.findById(book.author)
-  author.books = author.books.filter(bookId => bookId.toString() !== request.params.id)
-  await author.save()
-  await Book.findByIdAndDelete(request.params.id)
+  // Find the author and remove the book from their list of books
+  await Author.updateOne(
+    { _id: deletedBook.author },
+    { $pull: { books: bookId } }
+  )
+
+  response.status(204).end()
+  
+  // const book = await Book.findById(request.params.id)
+  // if (!book) {
+  //   return response.status(404).json({ message: 'Book not found' })
+  // }
+
+  // const author = await Author.findById(book.author)
+  // author.books = author.books.filter(bookId => bookId.toString() !== request.params.id)
+  // await author.save()
+  // await Book.findByIdAndDelete(request.params.id)
 })
 
 
 // PUT a book
 booksRouter.put('/:id', [tokenExtractor, userExtractor], async (request, response) => {
-
+  const bookId= request.params.id
   const user = request.user
+
+  const { title, imageUrl, price, description, genre, quantity } = request.body
 
   if (!user.isAdmin) {
     return response.status(403).json({ error: 'Forbidden. Only admins can edit books' })
   }
 
   // check if book exists
-  const bookToEdit = await Book.findById(request.params.id)
-  if (!bookToEdit) {
-    return response.status(404).json({ error: 'Book not found' })
+  // const bookToEdit = await Book.findById(request.params.id)
+  // if (!bookToEdit) {
+  //   return response.status(404).json({ error: 'Book not found' })
+  // }
+
+  const book = {
+    title: title,
+    imageUrl: imageUrl,
+    price: price,
+    description: description,
+    genre: genre,
+    quantity: quantity
   }
 
-  const body = request.body
-  const book = {
-    title: body.title,
-    imageUrl: body.imageUrl,
-    price: body.price,
-    description: body.description,
-    genre: body.genre,
-    quantity: body.quantity
+  const updatedBook = await Book.findByIdAndUpdate(bookId, book, { new: true })
+
+  if (!updatedBook) {
+    return response.status(404).json({ error: 'Book not found' })
   }
-  const updatedBook = await Book.findByIdAndUpdate(request.params.id, book, { new: true })
   response.json(updatedBook)
 })
 

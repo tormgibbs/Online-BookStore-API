@@ -3,6 +3,8 @@ const config = require('../utils/config')
 const Author = require('../models/author')
 const Book = require('../models/book')
 const helper = require('./helper')
+// const authorsList = require('./authors')
+// const booksList = require('./books')
 
 
 mongoose.set('strictQuery', false)
@@ -41,9 +43,15 @@ const populateDB = async () => {
   await Book.insertMany(booksWithAuthorIds);
 
   // Use aggregation to assign books to authors
+  // const authorPipeline = [
+  //   { $lookup: { from: 'books', localField: '_id', foreignField: 'author', as: 'books' } },
+  //   { $out: 'authors' } // Write the result back to the 'authors' collection
+  // ];
+
   const authorPipeline = [
-    { $lookup: { from: 'books', localField: '_id', foreignField: 'author', as: 'books' } },
-    { $out: 'authors' } // Write the result back to the 'authors' collection
+    { $lookup: { from: 'books', localField: '_id', foreignField: 'author', as: 'books'} },
+    { $addFields: { books: { $map: { input: '$books', as: 'book', in: '$$book._id' }}}},
+    { $out: 'authors' }
   ];
 
   await Author.aggregate(authorPipeline);
