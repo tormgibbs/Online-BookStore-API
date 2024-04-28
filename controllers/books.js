@@ -6,8 +6,24 @@ const { tokenExtractor, userExtractor } = require('../utils/middleware')
 
 // Get all books
 booksRouter.get('/', async (request, response) => {
-  const books = await Book.find({}).populate('author', { name: 1 })
-  response.json(books)
+  const { minPrice, maxPrice, genre, minQuantity, search } = request.query
+  let query = {}
+  if (minPrice && maxPrice) {
+    query.price = { $gte: minPrice, $lte: maxPrice };
+  } else if (genre) {
+    query.genre = genre;
+    console.log(query)
+  } else if (minQuantity) {
+    query.quantity = { $gte: minQuantity };
+  }
+
+  if (search) {
+    console.log(search)
+    query.title = { $regex: search, $options: 'i' };
+  }
+
+  const books = await Book.find(query).populate('author', { name: 1 })
+  return response.json(books)
 })
 
 
@@ -142,11 +158,6 @@ booksRouter.put('/:id', [tokenExtractor, userExtractor], async (request, respons
     return response.status(403).json({ error: 'Forbidden. Only admins can edit books' })
   }
 
-  // check if book exists
-  // const bookToEdit = await Book.findById(request.params.id)
-  // if (!bookToEdit) {
-  //   return response.status(404).json({ error: 'Book not found' })
-  // }
 
   const book = {
     title: title,

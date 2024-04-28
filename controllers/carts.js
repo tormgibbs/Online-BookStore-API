@@ -15,7 +15,6 @@ const {
 // Create a new cart
 cartsRouter.post('/', async (request, response) => {
   const cart = await Cart.create({});
-  
   const serializedCart = cartCreateSerializer(cart)
   response.status(201).json(serializedCart)
 })
@@ -32,22 +31,52 @@ cartsRouter.get('/:cartId', async (request, response) => {
 })
 
 // Delete a cart
+// cartsRouter.delete('/:cartId', async (request, response) => {
+//   const { cartId } = request.params
+//   // check if cart exists
+//   const cart = await Cart.findById(cartId)
+//   if (!cart) {
+//     return response.status(404).json({ message: 'Cart not found' })
+//   }
+
+//   // Delete associated cart items
+//   await CartItem.deleteMany({ cart: cartId })
+
+//   // Delete the cart
+//   await Cart.findByIdAndDelete(cartId)
+
+//   response.status(204).end()
+// })
+
+
 cartsRouter.delete('/:cartId', async (request, response) => {
-  const { cartId } = request.params
-  // check if cart exists
-  const cart = await Cart.findById(cartId)
-  if (!cart) {
-    return response.status(404).json({ message: 'Cart not found' })
+  const { cartId } = request.params;
+
+  // Use a transaction to ensure atomicity
+  const session = await Cart.startSession();
+  session.startTransaction();
+
+  try {
+    // Delete associated cart items
+    await CartItem.deleteMany({ cart: cartId }).session(session);
+
+    // Delete the cart
+    await Cart.findByIdAndDelete(cartId).session(session);
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
+    response.status(204).end();
+  } catch (error) {
+    // Abort transaction on error
+    await session.abortTransaction();
+    session.endSession();
+
+    // Handle error
+    response.status(500).json({ message: 'Failed to delete cart and cart items' });
   }
-
-  // Delete associated cart items
-  await CartItem.deleteMany({ cart: cartId })
-
-  // Delete the cart
-  await Cart.findByIdAndDelete(cartId)
-
-  response.status(204).end()
-})
+});
 
 
 // Get cart items

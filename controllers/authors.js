@@ -29,7 +29,7 @@ authorsRouter.get('/:id', async (request, response) => {
     }
     response.json(transformedAuthor)
   } else {
-    response.status(404).end()
+    response.status(404).send({ message: 'Author not found' })
   }
 })
 
@@ -59,22 +59,60 @@ authorsRouter.post('/', [tokenExtractor,userExtractor], async (request, response
 
 
 // DELETE an author
-authorsRouter.delete('/:id', async (request, response) => {
+// authorsRouter.delete('/:id', [tokenExtractor,userExtractor], async (request, response) => {
+//   const user = request.user
+//   if (!user.isAdmin) {
+//     return response.status(401).json({ error: 'Unauthorized access' })
+//   }
+
+//   const authorId = request.params.id
+//   const result = await Author.findByIdAndDelete(authorId)
+
+//   if (!result) {
+//     return response.status(404).send({ message: 'Author not found' })
+//   }
+  
+//   await Book.deleteMany({ author: authorId})
+//   response.status(204).send({ message: 'Author and related books deleted successfully' })
+// })
+
+
+
+authorsRouter.delete('/:id', [tokenExtractor,userExtractor], async (request, response) => {
   const user = request.user
   if (!user.isAdmin) {
     return response.status(401).json({ error: 'Unauthorized access' })
   }
 
   const authorId = request.params.id
-  const result = await Author.findByIdAndDelete(authorId)
 
-  if (!result) {
-    return response.status(404).send({ message: 'Author not found' })
+  // Use a transaction to ensure atomicity
+  const session = await Author.startSession()
+  session.startTransaction()
+
+  try {
+    // Delete the author and related books
+    const author = await Author.findByIdAndDelete(authorId).session(session);
+    if (!author) {
+      return response.status(404).json({ message: 'Author not found' });
+    }
+    await Book.deleteMany({ author: authorId }).session(session);
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession()
+
+    response.status(204).end()
+  } catch (error) {
+    // Abort transaction on error
+    await session.abortTransaction()
+    session.endSession();
+
+    // Handle error
+    response.status(500).json({ message: 'Failed to delete author and related books' })
   }
-  
-  await Book.deleteMany({ author: authorId})
-  response.status(204).send({ message: 'Author and related books deleted successfully' })
-})
+});
+
+
 
 
 module.exports = authorsRouter
