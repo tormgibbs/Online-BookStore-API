@@ -6,25 +6,57 @@ const { tokenExtractor, userExtractor } = require('../utils/middleware')
 
 // Get all books
 booksRouter.get('/', async (request, response) => {
-  const { minPrice, maxPrice, genre, minQuantity, search } = request.query
-  let query = {}
+  const { minPrice, maxPrice, genre, minQuantity, maxQuantity, search, page = 1, limit = 10, sort } = request.query;
+  let query = {};
+
   if (minPrice && maxPrice) {
     query.price = { $gte: minPrice, $lte: maxPrice };
   } else if (genre) {
     query.genre = genre;
-    console.log(query)
   } else if (minQuantity) {
     query.quantity = { $gte: minQuantity };
+  } else if (maxQuantity) {
+    query.quantity = { $lte: maxQuantity };
   }
 
   if (search) {
-    console.log(search)
     query.title = { $regex: search, $options: 'i' };
   }
 
-  const books = await Book.find(query).populate('author', { name: 1 })
-  return response.json(books)
-})
+  let sortQuery = {};
+
+  if (sort) {
+    const sortOptions = sort.split(',').map(option => {
+      const [field, order] = option.split(':');
+      return { [field]: order === 'desc' ? -1 : 1 };
+    });
+
+    sortQuery = Object.assign({}, ...sortOptions);
+  }
+
+  console.log(sortQuery)
+
+  try {
+    const totalCount = await Book.countDocuments(query);
+    const books = await Book.find(query)
+      .populate('author', { name: 1 })
+      .sort(sortQuery)
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    return response.json({
+      total: totalCount,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(totalCount / limit),
+      data: books
+    });
+  } catch (error) {
+    return response.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 
 
 // GET a single book

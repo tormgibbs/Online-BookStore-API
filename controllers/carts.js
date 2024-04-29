@@ -88,8 +88,6 @@ cartsRouter.get('/:cartId/items', async (request, response) => {
   response.json(serializedCartItems)
 })
 
-
-// Add items to cart
 cartsRouter.post('/:cartId/items', async (request, response) => {
   const { cartId } = request.params
   const body = request.body
@@ -99,39 +97,66 @@ cartsRouter.post('/:cartId/items', async (request, response) => {
   }
 
   // Check if book exists
-  const bookToAdd = await Book.findById(body.bookId)
-  if (!bookToAdd) {
-    return response.status(404).json({ message: 'Book not found' })
-  }
-
-  // Check if the book already exists in the cart
-  let existingCartItem = await CartItem.findOne({ cart: cartId, book: body.bookId })
-
-  if (existingCartItem) {
-    // If the book exists, update the quantity
-    existingCartItem.quantity += body.quantity
-    await existingCartItem.save()
-    const serializedCartItem = cartItemCreateSerializer(existingCartItem)
-    return response.status(200).json(serializedCartItem)
-  }
-
-  const cartItem = new CartItem({
-    cart: cartId,
-    book: body.bookId,
-    quantity: body.quantity
-  })
-
-  // check if book exists
   const book = await Book.findById(body.bookId)
   if (!book) {
     return response.status(404).json({ message: 'Book not found' })
   }
 
-  const newCartItem = await cartItem.save()
-  const serializedCartItem = cartItemCreateSerializer(newCartItem)
-  response.status(201).json(serializedCartItem)
+  // Check if the book already exists in the cart
+  let existingCartItem = await CartItem.findOneAndUpdate(
+    { cart: cartId, book: body.bookId },
+    { $inc: { quantity: body.quantity } },
+    { upsert: true, new: true }
+  )
 
+  const serializedCartItem = cartItemCreateSerializer(existingCartItem)
+  response.status(200).json(serializedCartItem)
 })
+
+
+// Add items to cart
+// cartsRouter.post('/:cartId/items', async (request, response) => {
+//   const { cartId } = request.params
+//   const body = request.body
+
+//   if (!body.bookId || !body.quantity) {
+//     return response.status(400).json({ message: 'Missing required fields' })
+//   }
+
+//   // Check if book exists
+//   const bookToAdd = await Book.findById(body.bookId)
+//   if (!bookToAdd) {
+//     return response.status(404).json({ message: 'Book not found' })
+//   }
+
+//   // Check if the book already exists in the cart
+//   let existingCartItem = await CartItem.findOne({ cart: cartId, book: body.bookId })
+
+//   if (existingCartItem) {
+//     // If the book exists, update the quantity
+//     existingCartItem.quantity += body.quantity
+//     await existingCartItem.save()
+//     const serializedCartItem = cartItemCreateSerializer(existingCartItem)
+//     return response.status(200).json(serializedCartItem)
+//   }
+
+//   const cartItem = new CartItem({
+//     cart: cartId,
+//     book: body.bookId,
+//     quantity: body.quantity
+//   })
+
+//   // check if book exists
+//   const book = await Book.findById(body.bookId)
+//   if (!book) {
+//     return response.status(404).json({ message: 'Book not found' })
+//   }
+
+//   const newCartItem = await cartItem.save()
+//   const serializedCartItem = cartItemCreateSerializer(newCartItem)
+//   response.status(201).json(serializedCartItem)
+
+// })
 
 // Get an item in cart
 cartsRouter.get('/:cartId/items/:cartItemId', async (request, response) => {

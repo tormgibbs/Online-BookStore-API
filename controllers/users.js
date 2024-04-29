@@ -46,7 +46,19 @@ usersRouter.get('/me', [ tokenExtractor, userExtractor ], async (request, respon
 
 usersRouter.put('/me', [ tokenExtractor, userExtractor ], async (request, response) => {
   const user = request.user
-  const userInDB = await User.findByIdAndUpdate(user.id, request.body, { new: true })
+  const { name, email } = request.body
+
+  if (!name || !email) {
+    return response.status(400).json({ error: 'name and email are required' })
+  }
+
+  const updatedUser = {
+    name,
+    email
+  }
+
+
+  const userInDB = await User.findByIdAndUpdate(user.id, updatedUser, { new: true })
   response.json(userInDB)
 })
 
