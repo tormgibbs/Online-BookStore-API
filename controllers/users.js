@@ -1,12 +1,12 @@
 const bcrypt = require('bcrypt')
 const usersRouter = require('express').Router()
 const User = require('../models/user')
-const { tokenExtractor, userExtractor } = require('../utils/middleware')
+const { tokenExtractor, userExtractor, validateUser } = require('../utils/middleware')
 
 
 usersRouter.get('/', [ tokenExtractor, userExtractor ], async (request, response) => {
   const user = request.user
-  const users = user.isAdmin 
+  const users = user.isAdmin
     ? await User.find({}).populate('username').populate('email')
     : await User.find({ username: user.username }).populate('username').populate('email')
   response.json(users)
@@ -14,7 +14,7 @@ usersRouter.get('/', [ tokenExtractor, userExtractor ], async (request, response
 
 
 
-usersRouter.post('/', async (request, response) => {
+usersRouter.post('/', validateUser, async (request, response) => {
   const { username, name, password, email } = request.body
 
   if (password.length < 5 || username.length < 5) {
