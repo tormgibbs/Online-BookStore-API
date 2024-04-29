@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt')
 const usersRouter = require('express').Router()
 const User = require('../models/user')
-const { tokenExtractor, userExtractor } = require('../utils/middleware')
+const { tokenExtractor, userExtractor, validateUser } = require('../utils/middleware')
 
 
 usersRouter.get('/', [ tokenExtractor, userExtractor ], async (request, response) => {
@@ -14,7 +14,7 @@ usersRouter.get('/', [ tokenExtractor, userExtractor ], async (request, response
 
 
 
-usersRouter.post('/', async (request, response) => {
+usersRouter.post('/', validateUser, async (request, response) => {
   const { username, name, password, email } = request.body
 
   if (password.length < 5 || username.length < 5) {
