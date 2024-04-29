@@ -7,10 +7,21 @@ const { tokenExtractor, userExtractor } = require('../utils/middleware')
 
 
 // GET all authors
+// authorsRouter.get('/', async (request, response) => {
+//   const authors = await Author.find({}).populate('books', { title: 1 })
+//   response.json(authors)
+// })
+
 authorsRouter.get('/', async (request, response) => {
-  const authors = await Author.find({}).populate('books', { title: 1 })
-  response.json(authors)
-})
+  const authors = Author.find({}).populate('books', { title: 1 }).cursor();
+  const result = [];
+
+  for await (const author of authors) {
+    result.push(author);
+  }
+  response.json(result);
+});
+
 
 
 // GET a single author
